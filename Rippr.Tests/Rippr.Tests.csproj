@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\cli\Rippr.csproj" />
+    <ProjectReference Include="..\Rippr\Rippr.csproj" />
   </ItemGroup>
 
 </Project>
