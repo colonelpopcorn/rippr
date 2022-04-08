@@ -1,11 +1,11 @@
-﻿namespace OpticalDiscAutomator
+﻿namespace Rippr
 {
     public class MediaInformation
     {
-        public string Type { get; set; }
-        public string Title { get; set; }
-        public string Year { get; set; }
-        public int[] EpisodeNumbers { get; set; }
-        public string Runtime { get; set; }
+        public string Type { get; internal set; }
+        public string Title { get; internal set; }
+        public string Year { get; internal set; }
+        public int[] EpisodeNumbers { get; internal set; }
+        public string Runtime { get; internal set; }
     }
 }

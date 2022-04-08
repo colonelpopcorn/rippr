@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "Rippr": {
+      "commandName": "Project"
+    },
+    "RipprDebug": {
+      "commandName": "Project",
+      "commandLineArgs": "--debug --omdb-api-key=4ec7e2a"
+    },
+    "RipprHelp": {
+      "commandName": "Project",
+      "commandLineArgs": "--help --omdb-api-key 4ec7e2a"
+    }
+  }
+}

@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace OpticalDiscAutomator
+namespace Rippr
 {
-    class DiscInfo
+    public class DiscInfo
     {
-        public String DiscType { get; set; }
-        public MediaInformation MediaInfo { get; set; }
+        public String DiscType { get; internal set; }
+        public MediaInformation MediaInfo { get; internal set; }
 
     }
 }
