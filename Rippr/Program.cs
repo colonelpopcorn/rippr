@@ -38,14 +38,24 @@ internal class Program
                 v => ripprOptions.OutputOpts.MusicOutputPath = v
             },
             {
-                "movie-output-path=",
+                "hd-movie-output-path=",
                 "Post rip {DIRECTORY} for movie rips.",
-                v => ripprOptions.OutputOpts.MovieOutputPath = v
+                v => ripprOptions.OutputOpts.HDMovieOutputPath = v
             },
             {
-                "tv-output-path=",
+                "sd-movie-output-path=",
+                "Post rip {DIRECTORY} for movie rips.",
+                v => ripprOptions.OutputOpts.SDMovieOutputPath = v
+            },
+            {
+                "hd-tv-output-path=",
                 "Post rip {DIRECTORY} for tv rips.",
-                v => ripprOptions.OutputOpts.TVOutputPath = v
+                v => ripprOptions.OutputOpts.HDTVOutputPath = v
+            },
+            {
+                "sd-tv-output-path=",
+                "Post rip {DIRECTORY} for tv rips.",
+                v => ripprOptions.OutputOpts.SDTVOutputPath = v
             },
             {
                 "iso-output-path=",

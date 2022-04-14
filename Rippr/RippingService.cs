@@ -10,7 +10,6 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.VisualBasic;
 using FileSystem = Microsoft.VisualBasic.FileIO.FileSystem;
 
 namespace Rippr
@@ -28,6 +27,7 @@ namespace Rippr
         {
             this.ripprOptions = ripprOptions;
         }
+
         [DllImport("winmm.dll")]
         static extern Int32 mciSendString(string command, string buffer, int bufferSize, IntPtr hwndCallback);
 
@@ -40,21 +40,35 @@ namespace Rippr
             foreach (ManagementObject mo in mos.Get())
             {
                 var discInfo = new DiscInfo();
+                discInfo.DriveLetter = mo.GetPropertyValue("Drive").ToString();
                 long result;
                 var didParseSize = Int64.TryParse(mo.GetPropertyValue("Size").ToString(), out result);
-                if (didParseSize)
+                if (didParseSize && result != 0)
                 {
                     var typeOfDisc = GetDiscTypeFromSize(result);
                     discInfo.DiscType = typeOfDisc;
                     String queryString = mo.GetPropertyValue("VolumeName").ToString();
-                    discInfo.MediaInfo = await GetMediaInfoFromAPI(queryString, typeOfDisc, mo.GetPropertyValue("Drive").ToString());
+                    discInfo.MediaInfo = await GetMediaInfoFromAPI(queryString, typeOfDisc, discInfo.DriveLetter);
                 }
                 else
                 {
-                    throw new Exception("Failed to parse disc size!");
+                    var driveInfo = new DriveInfo(discInfo.DriveLetter);
+                    if (driveInfo.DriveFormat == "CDFS" || driveInfo.VolumeLabel.Contains("Audio"))
+                    {
+                        discInfo.DiscType = "CD";
+                        var mediaInfo = new MediaInformation();
+                        mediaInfo.Type = "music";
+                        discInfo.MediaInfo = mediaInfo;
+                    }
+                    else
+                    {
+                        throw new Exception("Failed to parse disc size!");
+                    }
                 }
+
                 discInfoList.Add(discInfo);
             }
+
             return discInfoList;
         }
 
@@ -70,7 +84,8 @@ namespace Rippr
                 var pathInfo = getPathInfo(disc);
                 var sourcePath = pathInfo.InputPath;
                 var outputPath = getOutputPath(disc);
-                var localPath = String.Format(@"{0}\{1}", sourcePath, String.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year));
+                var localPath = String.Format(@"{0}\{1}", sourcePath,
+                    String.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year));
 
                 if (Directory.Exists(localPath))
                 {
@@ -78,7 +93,8 @@ namespace Rippr
                     {
                         if (ripprOptions.IsDebugMode)
                         {
-                            Console.WriteLine(String.Format("Would copy {0} to {1}, recursively", sourcePath, outputPath));
+                            Console.WriteLine(String.Format("Would copy {0} to {1}, recursively", sourcePath,
+                                outputPath));
                         }
                         else
                         {
@@ -88,7 +104,6 @@ namespace Rippr
                     }
                 }
             }
-
         }
 
         public void RipEachDisc(List<DiscInfo> discInfo)
@@ -96,14 +111,26 @@ namespace Rippr
             // Command : "C:\Program Files (x86)\MakeMKV\makemkvcon64.exe" --minlength=130 -r --decrypt --directio=true mkv disc:0 all "C:\ProgramData\Rips\Jack Reacher (2012)"
             foreach (var (disc, index) in discInfo.Select((value, index) => (value, index)))
             {
-                var tempDirForRip = CreateTempDirForRip(String.Format(@"{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year), disc);
-                var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime);
+                String command;
                 var pathInfo = getPathInfo(disc);
-                var sourcePath = pathInfo.InputPath;
-                var command = String.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, runTimeInSeconds, index, tempDirForRip);
+                if (disc.DiscType != "CD")
+                {
+                    var tempDirForRip =
+                        CreateTempDirForRip(String.Format(@"{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year),
+                            disc);
+                    var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime);
+                    command = String.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, runTimeInSeconds, index,
+                        tempDirForRip);
+                }
+                else
+                {
+                    command = String.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, disc.DriveLetter,
+                        ripprOptions.OutputOpts.MusicOutputPath);
+                }
+
                 if (ripprOptions.IsDebugMode)
                 {
-                    Console.WriteLine(String.Format("Would run this command: {0}", command));
+                    Console.WriteLine($"Would run this command: {command}");
                 }
                 else
                 {
@@ -112,18 +139,22 @@ namespace Rippr
                 }
             }
         }
-        
+
         public String getOutputPath(DiscInfo disc)
         {
             var mediaType = disc.MediaInfo.Type;
-            return mediaType == "movie" ? ripprOptions.OutputOpts.MovieOutputPath :
-                mediaType == "tv" ? ripprOptions.OutputOpts.MovieOutputPath :
+            var discType = disc.DiscType;
+            return mediaType == "movie" ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDMovieOutputPath :
+                ripprOptions.OutputOpts.SDMovieOutputPath :
+                mediaType == "tv" ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDTVOutputPath :
+                ripprOptions.OutputOpts.SDTVOutputPath :
                 mediaType == "music" ? ripprOptions.OutputOpts.MusicOutputPath : ripprOptions.OutputOpts.ISOOutputPath;
         }
 
         public RipprInputOpts getPathInfo(DiscInfo disc)
         {
-            return disc.DiscType == "CD" ? ripprOptions.CdInputOpts : disc.DiscType == "DVD" ? ripprOptions.DvdInputOpts : ripprOptions.BluRayInputOpts;
+            return disc.DiscType == "CD" ? ripprOptions.CdInputOpts :
+                disc.DiscType == "DVD" ? ripprOptions.DvdInputOpts : ripprOptions.BluRayInputOpts;
         }
 
         public void EjectDisc(List<DiscInfo> discInfo, int index)
@@ -135,7 +166,6 @@ namespace Rippr
 
         public void StartRip(String command)
         {
-
             Process process = new Process();
             process.StartInfo.FileName = "cmd.exe";
             process.StartInfo.UseShellExecute = false;
@@ -166,18 +196,19 @@ namespace Rippr
         public string CreateTempDirForRip(String dirName, DiscInfo disc)
         {
             var baseTempDir = getPathInfo(disc).InputPath;
-            var dirToCreate = String.Format(@"{0}\{1}", baseTempDir, dirName);
+            var dirToCreate = $@"{baseTempDir}\{dirName}";
             if (!Directory.Exists(dirToCreate))
             {
                 if (ripprOptions.IsDebugMode)
                 {
-                    Console.WriteLine(String.Format(@"Would create {0}", dirToCreate));
+                    Console.WriteLine($@"Would create {dirToCreate}");
                 }
                 else
                 {
                     Directory.CreateDirectory(dirToCreate);
                 }
             }
+
             return dirToCreate;
         }
 
@@ -189,11 +220,10 @@ namespace Rippr
         }
 
 
-
-        public async Task<MediaInformation> GetMediaInfoFromAPI(String queryString, string typeOfDisc, string driveLetter)
+        public async Task<MediaInformation> GetMediaInfoFromAPI(String queryString, string typeOfDisc,
+            string driveLetter)
         {
             var mediaInfo = new MediaInformation();
-            var driveInfo = new DriveInfo(driveLetter);
 
             if (typeOfDisc != "CD")
             {
@@ -201,10 +231,12 @@ namespace Rippr
                 {
                     using (HttpClient client = new HttpClient())
                     {
-                        string requestUri = String.Format("https://www.omdbapi.com/?apikey={0}&t={1}", ripprOptions.OmdbApiKey, queryString);
+                        string requestUri = String.Format("https://www.omdbapi.com/?apikey={0}&t={1}",
+                            ripprOptions.OmdbApiKey, queryString);
                         using (HttpResponseMessage response = await client.GetAsync(requestUri))
                         {
-                            if (response.StatusCode >= System.Net.HttpStatusCode.OK && response.StatusCode < System.Net.HttpStatusCode.BadRequest)
+                            if (response.StatusCode >= System.Net.HttpStatusCode.OK &&
+                                response.StatusCode < System.Net.HttpStatusCode.BadRequest)
                             {
                                 using (HttpContent content = response.Content)
                                 {
@@ -233,7 +265,8 @@ namespace Rippr
             }
             else
             {
-                Console.WriteLine("It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
+                Console.WriteLine(
+                    "It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
                 mediaInfo.Type = "music";
                 return mediaInfo;
                 return null;
