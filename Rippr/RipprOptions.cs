@@ -5,9 +5,10 @@
         public bool IsDebugMode { get; internal set; }
         public bool ShouldShowHelp { get; internal set; }
         public bool IsBatchMode { get; internal set; }
-        public RipprPathInfo CDPathInfo { get; internal set; }
-        public RipprPathInfo DVDPathInfo { get; internal set; }
-        public RipprPathInfo BluRayPathInfo { get; internal set; }
+        public RipprInputOpts CdInputOpts { get; internal set; }
+        public RipprInputOpts DvdInputOpts { get; internal set; }
+        public RipprInputOpts BluRayInputOpts { get; internal set; }
+        public RipprOutputOpts OutputOpts { get; internal set; }
         public string OmdbApiKey { get; internal set; }
 
         public static RipprOptions getDefault()
@@ -16,9 +17,10 @@
             ripprOpts.IsDebugMode = false;
             ripprOpts.ShouldShowHelp = false;
             ripprOpts.IsBatchMode = false;
-            ripprOpts.CDPathInfo = RipprPathInfo.getDefault();
-            ripprOpts.DVDPathInfo = RipprPathInfo.getDefault();
-            ripprOpts.BluRayPathInfo = RipprPathInfo.getDefault();
+            ripprOpts.CdInputOpts = RipprInputOpts.getDefault("CD");
+            ripprOpts.DvdInputOpts = RipprInputOpts.getDefault("DVD");
+            ripprOpts.BluRayInputOpts = RipprInputOpts.getDefault("Blu-Ray");
+            ripprOpts.OutputOpts = RipprOutputOpts.getDefault();
             ripprOpts.OmdbApiKey = "";
             return ripprOpts;
         }

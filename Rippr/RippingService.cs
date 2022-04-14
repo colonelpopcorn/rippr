@@ -10,6 +10,8 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.VisualBasic;
+using FileSystem = Microsoft.VisualBasic.FileIO.FileSystem;
 
 namespace Rippr
 {
@@ -45,7 +47,7 @@ namespace Rippr
                     var typeOfDisc = GetDiscTypeFromSize(result);
                     discInfo.DiscType = typeOfDisc;
                     String queryString = mo.GetPropertyValue("VolumeName").ToString();
-                    discInfo.MediaInfo = await GetMediaInfoFromAPI(queryString, typeOfDisc);
+                    discInfo.MediaInfo = await GetMediaInfoFromAPI(queryString, typeOfDisc, mo.GetPropertyValue("Drive").ToString());
                 }
                 else
                 {
@@ -67,20 +69,20 @@ namespace Rippr
             {
                 var pathInfo = getPathInfo(disc);
                 var sourcePath = pathInfo.InputPath;
-                var remotePath = pathInfo.OutputPath;
+                var outputPath = getOutputPath(disc);
                 var localPath = String.Format(@"{0}\{1}", sourcePath, String.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year));
 
                 if (Directory.Exists(localPath))
                 {
-                    if (Directory.Exists(remotePath))
+                    if (Directory.Exists(outputPath))
                     {
                         if (ripprOptions.IsDebugMode)
                         {
-                            Console.WriteLine(String.Format("Would copy {0} to {1}, recursively", sourcePath, remotePath));
+                            Console.WriteLine(String.Format("Would copy {0} to {1}, recursively", sourcePath, outputPath));
                         }
                         else
                         {
-                            CopyFilesRecursively(localPath, remotePath);
+                            CopyFilesRecursively(localPath, outputPath);
                             Directory.Delete(localPath, true);
                         }
                     }
@@ -110,10 +112,18 @@ namespace Rippr
                 }
             }
         }
-
-        public RipprPathInfo getPathInfo(DiscInfo disc)
+        
+        public String getOutputPath(DiscInfo disc)
         {
-            return disc.DiscType == "CD" ? ripprOptions.CDPathInfo : disc.DiscType == "DVD" ? ripprOptions.DVDPathInfo : ripprOptions.BluRayPathInfo;
+            var mediaType = disc.MediaInfo.Type;
+            return mediaType == "movie" ? ripprOptions.OutputOpts.MovieOutputPath :
+                mediaType == "tv" ? ripprOptions.OutputOpts.MovieOutputPath :
+                mediaType == "music" ? ripprOptions.OutputOpts.MusicOutputPath : ripprOptions.OutputOpts.ISOOutputPath;
+        }
+
+        public RipprInputOpts getPathInfo(DiscInfo disc)
+        {
+            return disc.DiscType == "CD" ? ripprOptions.CdInputOpts : disc.DiscType == "DVD" ? ripprOptions.DvdInputOpts : ripprOptions.BluRayInputOpts;
         }
 
         public void EjectDisc(List<DiscInfo> discInfo, int index)
@@ -180,11 +190,11 @@ namespace Rippr
 
 
 
-        public async Task<MediaInformation> GetMediaInfoFromAPI(String queryString, string typeOfDisc)
+        public async Task<MediaInformation> GetMediaInfoFromAPI(String queryString, string typeOfDisc, string driveLetter)
         {
             var mediaInfo = new MediaInformation();
+            var driveInfo = new DriveInfo(driveLetter);
 
-            // TODO: Drop to search if no results are returned
             if (typeOfDisc != "CD")
             {
                 try
@@ -209,6 +219,7 @@ namespace Rippr
                             }
                             else
                             {
+                                // TODO: drop to search here
                                 return null;
                             }
                         }
@@ -223,6 +234,8 @@ namespace Rippr
             else
             {
                 Console.WriteLine("It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
+                mediaInfo.Type = "music";
+                return mediaInfo;
                 return null;
             }
         }
