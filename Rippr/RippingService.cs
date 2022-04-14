@@ -269,7 +269,6 @@ namespace Rippr
                     "It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
                 mediaInfo.Type = "music";
                 return mediaInfo;
-                return null;
             }
         }
 
