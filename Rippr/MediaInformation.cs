@@ -7,5 +7,10 @@
         public string Year { get; internal set; }
         public int[] EpisodeNumbers { get; internal set; }
         public string Runtime { get; internal set; }
+
+        public bool IsEmpty()
+        {
+            return Title == null && Year == null && Runtime == null;
+        }
     }
 }
