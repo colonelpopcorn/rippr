@@ -48,7 +48,7 @@ public class RippingService
             {
                 var typeOfDisc = GetDiscTypeFromSize(result);
                 discInfo.DiscType = typeOfDisc;
-                var queryString = mo.GetPropertyValue("VolumeName").ToString();
+                var queryString = mo.GetPropertyValue("VolumeName").ToString().ToLower().Replace("_", " ");
                 discInfo.MediaInfo = await GetMediaInfoFromAPI(queryString, typeOfDisc);
             }
             else
