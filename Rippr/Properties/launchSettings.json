@@ -1,7 +1,8 @@
 {
   "profiles": {
     "Rippr": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--omdb-api-key=4ec7e2a"
     },
     "RipprDebug": {
       "commandName": "Project",

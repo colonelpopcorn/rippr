@@ -84,9 +84,9 @@ public class RippingService
         {
             var pathInfo = getPathInfo(disc);
             var sourcePath = pathInfo.InputPath;
-            var outputPath = getOutputPath(disc);
-            var localPath = string.Format(@"{0}\{1}", sourcePath,
-                string.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year));
+            var mediaFolderName = string.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year);
+            var outputPath = $"{getOutputPath(disc)}\\{mediaFolderName}";
+            var localPath = string.Format(@"{0}\{1}", sourcePath, mediaFolderName);
 
             if (Directory.Exists(localPath))
                 if (Directory.Exists(outputPath))
@@ -210,7 +210,7 @@ public class RippingService
     {
         var runtimeInMinutesStr = Regex.Replace(runtime, "[a-zA-Z]", "").Trim();
         var runtimeInMinutes = int.Parse(runtimeInMinutesStr);
-        return (runtimeInMinutes * 60).ToString();
+        return ((runtimeInMinutes * 60) - (runtimeInMinutes * .05)).ToString();
     }
 
 
