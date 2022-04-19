@@ -75,6 +75,7 @@ public class RippingService
 
     public void CopyFilesRecursively(string sourcePath, string targetPath)
     {
+        Directory.CreateDirectory(targetPath);
         FileSystem.CopyDirectory(sourcePath, targetPath, UIOption.AllDialogs);
     }
 
@@ -89,18 +90,21 @@ public class RippingService
             var localPath = string.Format(@"{0}\{1}", sourcePath, mediaFolderName);
 
             if (Directory.Exists(localPath))
-                if (Directory.Exists(outputPath))
+            {
+                if (ripprOptions.IsDebugMode)
                 {
-                    if (ripprOptions.IsDebugMode)
-                    {
-                        Console.WriteLine("Would copy {0} to {1}, recursively", sourcePath, outputPath);
-                    }
-                    else
-                    {
-                        CopyFilesRecursively(localPath, outputPath);
-                        Directory.Delete(localPath, true);
-                    }
+                    Console.WriteLine("Would copy {0} to {1}, recursively", sourcePath, outputPath);
                 }
+                else
+                {
+                    CopyFilesRecursively(localPath, outputPath);
+                    Directory.Delete(localPath, true);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Error: Could not find output of ripping process. Something must have gone wrong!");
+            }
         }
     }
 
@@ -210,7 +214,7 @@ public class RippingService
     {
         var runtimeInMinutesStr = Regex.Replace(runtime, "[a-zA-Z]", "").Trim();
         var runtimeInMinutes = int.Parse(runtimeInMinutesStr);
-        return ((runtimeInMinutes * 60) - (runtimeInMinutes * .05)).ToString();
+        return (runtimeInMinutes * 60 - runtimeInMinutes * .05).ToString();
     }
 
 
@@ -219,7 +223,6 @@ public class RippingService
         var mediaInfo = new MediaInformation();
 
         if (typeOfDisc != "CD")
-        {
             try
             {
                 var requestUri = string.Format("https://www.omdbapi.com/?apikey={0}&t={1}",
@@ -250,7 +253,7 @@ public class RippingService
                         var imdbId = selectedItemId.imdbID;
                         var idUri = string.Format("https://www.omdbapi.com/?apikey={0}&i={1}",
                             ripprOptions.OmdbApiKey, imdbId);
-                        dynamic searchResponse = await getDiscDetailsById(idUri);
+                        var searchResponse = await getDiscDetailsById(idUri);
                         mediaInfo.Title = searchResponse.Title;
                         mediaInfo.Year = searchResponse.Year;
                         mediaInfo.Type = searchResponse.Type;
@@ -265,7 +268,6 @@ public class RippingService
                 Console.Write(ex);
                 return null;
             }
-        }
 
         Console.WriteLine(
             "It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
@@ -291,13 +293,10 @@ public class RippingService
                         using (var content = response.Content)
                         {
                             var contentString = await content.ReadAsStringAsync();
-                            JObject responseOuter = JsonConvert.DeserializeObject<JObject>(contentString);
-                            JArray responseObj = (JArray) responseOuter.GetValue("Search");
-                            List<object> returnList = new List<object>();
-                            foreach (var token in responseObj)
-                            {
-                                returnList.Add(token);
-                            }
+                            var responseOuter = JsonConvert.DeserializeObject<JObject>(contentString);
+                            var responseObj = (JArray)responseOuter.GetValue("Search");
+                            var returnList = new List<object>();
+                            foreach (var token in responseObj) returnList.Add(token);
                             return returnList;
                         }
                 }
