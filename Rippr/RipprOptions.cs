@@ -10,6 +10,7 @@
         public RipprInputOpts BluRayInputOpts { get; internal set; }
         public RipprOutputOpts OutputOpts { get; internal set; }
         public string OmdbApiKey { get; internal set; }
+        public bool IsSearchMode { get; internal set; }
 
         public static RipprOptions getDefault()
         {

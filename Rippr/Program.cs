@@ -103,6 +103,11 @@ internal class Program
             //     argConfigPath => argConfigPath = argConfigPath
             // },
             {
+                "verify-identification",
+                "Require user verification of disc before identifying.",
+                verifyIdentification => ripprOptions.IsSearchMode = verifyIdentification != null
+            },
+            {
                 "debug",
                 "Print everything the app would do if debug flag was not set.",
                 v => ripprOptions.IsDebugMode = v != null

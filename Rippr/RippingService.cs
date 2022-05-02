@@ -17,6 +17,11 @@ namespace Rippr;
 
 public class RippingService
 {
+    private readonly int MIN_MINUTE_REMOVAL_MOVIE = 5 * 60;
+    private readonly int MIN_MINUTE_REMOVAL_TV = 2 * 60;
+    private readonly string MOVIE_TYPE = "movie";
+    private readonly string TELEVISION_TYPE = "series";
+    private readonly string MUSIC_TYPE = "music";
     private readonly RipprOptions ripprOptions;
 
     public RippingService()
@@ -58,7 +63,7 @@ public class RippingService
                 {
                     discInfo.DiscType = "CD";
                     var mediaInfo = new MediaInformation();
-                    mediaInfo.Type = "music";
+                    mediaInfo.Type = MUSIC_TYPE;
                     discInfo.MediaInfo = mediaInfo;
                 }
                 else
@@ -85,7 +90,7 @@ public class RippingService
         {
             var pathInfo = getPathInfo(disc);
             var sourcePath = pathInfo.InputPath;
-            var mediaFolderName = string.Format("{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year);
+            var mediaFolderName = RemoveInvalidFilePathCharacters(getPathSchemeByType(disc), " -");
             var outputPath = $"{getOutputPath(disc)}\\{mediaFolderName}";
             var localPath = string.Format(@"{0}\{1}", sourcePath, mediaFolderName);
 
@@ -117,10 +122,9 @@ public class RippingService
             var pathInfo = getPathInfo(disc);
             if (disc.DiscType != "CD")
             {
-                var tempDirForRip =
-                    CreateTempDirForRip(string.Format(@"{0} ({1})", disc.MediaInfo.Title, disc.MediaInfo.Year),
-                        disc);
-                var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime);
+                var tempDirByType = getPathSchemeByType(disc);
+                var tempDirForRip = CreateTempDirForRip(tempDirByType, disc);
+                var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime, disc.MediaInfo.Type);
                 command = string.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, runTimeInSeconds, index,
                     tempDirForRip);
             }
@@ -142,15 +146,39 @@ public class RippingService
         }
     }
 
+    private String getPathSchemeByType(DiscInfo disc)
+    {
+        return disc.MediaInfo.Type == MOVIE_TYPE ? $"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})" : getTelevisionPathFromUser(disc);
+    }
+
+    private string getTelevisionPathFromUser(DiscInfo disc)
+    {
+        Console.WriteLine("TV series disc detected, enter season #:");
+        var seriesNumber = Console.ReadLine();
+        var finalSeriesNumber = seriesNumber.Length > 1 ? seriesNumber : $"0{seriesNumber}";
+        Console.WriteLine("Enter disc #:");
+        var discNumber = Console.ReadLine();
+        var finalDiscNumber = discNumber.Length > 1 ? discNumber : $"0{discNumber}";
+        return $"Season {finalSeriesNumber}\\Disc {finalDiscNumber}";
+    }
+
+    // https://stackoverflow.com/questions/3825433/c-sharp-remove-invalid-characters-from-filename
+    public static string RemoveInvalidFilePathCharacters(string filename, string replaceChar)
+    {
+        string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+        Regex r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
+        return r.Replace(filename, replaceChar);
+    }
+
     public string getOutputPath(DiscInfo disc)
     {
         var mediaType = disc.MediaInfo.Type;
         var discType = disc.DiscType;
-        return mediaType == "movie" ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDMovieOutputPath :
+        return mediaType == MOVIE_TYPE ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDMovieOutputPath :
             ripprOptions.OutputOpts.SDMovieOutputPath :
-            mediaType == "tv" ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDTVOutputPath :
+            mediaType == TELEVISION_TYPE ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDTVOutputPath :
             ripprOptions.OutputOpts.SDTVOutputPath :
-            mediaType == "music" ? ripprOptions.OutputOpts.MusicOutputPath : ripprOptions.OutputOpts.ISOOutputPath;
+            mediaType == MUSIC_TYPE ? ripprOptions.OutputOpts.MusicOutputPath : ripprOptions.OutputOpts.ISOOutputPath;
     }
 
     public RipprInputOpts getPathInfo(DiscInfo disc)
@@ -163,7 +191,7 @@ public class RippingService
     {
         // TODO: Figure out how to target disc for open
         var rt = "";
-        mciSendString("set CDAudio door closed", rt, 127, IntPtr.Zero);
+        mciSendString("set CDAudio door open", rt, 127, IntPtr.Zero);
     }
 
     public void StartRip(string command)
@@ -198,7 +226,7 @@ public class RippingService
     public string CreateTempDirForRip(string dirName, DiscInfo disc)
     {
         var baseTempDir = getPathInfo(disc).InputPath;
-        var dirToCreate = $@"{baseTempDir}\{dirName}";
+        var dirToCreate = $@"{baseTempDir}\{RemoveInvalidFilePathCharacters(dirName, "-")}";
         if (!Directory.Exists(dirToCreate))
         {
             if (ripprOptions.IsDebugMode)
@@ -210,11 +238,20 @@ public class RippingService
         return dirToCreate;
     }
 
-    public string GetRuntimeInSeconds(string runtime)
+    public string GetRuntimeInSeconds(string runtime, string type)
     {
-        var runtimeInMinutesStr = Regex.Replace(runtime, "[a-zA-Z]", "").Trim();
-        var runtimeInMinutes = int.Parse(runtimeInMinutesStr);
-        return (runtimeInMinutes * 60 - runtimeInMinutes * .05).ToString();
+        try
+        {
+            var runtimeInMinutesStr = Regex.Replace(runtime, "[a-zA-Z]", "").Trim();
+            var runtimeInMinutes = int.Parse(runtimeInMinutesStr);
+            return (runtimeInMinutes * 60 - (type == MOVIE_TYPE ? MIN_MINUTE_REMOVAL_MOVIE : MIN_MINUTE_REMOVAL_TV))
+                .ToString();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return "0";
+        }
     }
 
 
@@ -225,27 +262,44 @@ public class RippingService
         if (typeOfDisc != "CD")
             try
             {
-                var requestUri = string.Format("https://www.omdbapi.com/?apikey={0}&t={1}",
-                    ripprOptions.OmdbApiKey, queryString);
-                dynamic response = await getDiscDetailsByName(requestUri);
-                mediaInfo.Title = response.Title;
-                mediaInfo.Year = response.Year;
-                mediaInfo.Type = response.Type;
-                mediaInfo.Runtime = response.Runtime;
+                if (!ripprOptions.IsSearchMode)
+                {
+                    var requestUri = string.Format("https://www.omdbapi.com/?apikey={0}&t={1}",
+                        ripprOptions.OmdbApiKey, queryString);
+                    dynamic response = await getDiscDetailsByName(requestUri);
+                    mediaInfo.Title = response.Title;
+                    mediaInfo.Year = response.Year;
+                    mediaInfo.Type = response.Type;
+                    mediaInfo.Runtime = response.Runtime;
+                }
+
                 if (mediaInfo.IsEmpty())
                 {
-                    Console.WriteLine("Cannot identify movie, please enter search term:");
+                    if (!ripprOptions.IsSearchMode)
+                    {
+                        Console.Write("Automatic identification failed, dropping to search. ");
+                    }
+                    Console.WriteLine("Please enter search term:");
                     var searchString = Console.ReadLine();
                     var newUri = string.Format("https://www.omdbapi.com/?apikey={0}&s={1}",
                         ripprOptions.OmdbApiKey, searchString);
                     var listOfMovies = await searchDiscDetailsByName(newUri);
-                    for (var i = 0; i < listOfMovies.Count - 1; i++)
+                    string selection;
+                    if (listOfMovies.Count == 1)
                     {
-                        dynamic movie = listOfMovies[i];
-                        Console.WriteLine($"[{i}] {movie.Type}: {movie.Title} - {movie.Year}");
+                        selection = "0";
+                    }
+                    else
+                    {
+                        for (var i = 0; i < listOfMovies.Count - 1; i++)
+                        {
+                            dynamic movie = listOfMovies[i];
+                            Console.WriteLine($"[{i}] {movie.Type}: {movie.Title} - {movie.Year}");
+                        }
+
+                        selection = Console.ReadLine();
                     }
 
-                    var selection = Console.ReadLine();
                     int selectionNum;
                     if (int.TryParse(selection, out selectionNum))
                     {
@@ -271,7 +325,7 @@ public class RippingService
 
         Console.WriteLine(
             "It's a CD, skipping because ripper for CDs should handle identification from FreeDB");
-        mediaInfo.Type = "music";
+        mediaInfo.Type = MUSIC_TYPE;
         return mediaInfo;
     }
 
