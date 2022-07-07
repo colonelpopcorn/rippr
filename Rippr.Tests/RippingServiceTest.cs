@@ -1,5 +1,7 @@
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using Rippr;
 
 namespace RipprTests
 {
@@ -26,6 +28,41 @@ namespace RipprTests
             Assert.IsTrue(infoList.Count > 0);
         }
 
-        
+        [TestMethod]
+        public void TestGetTempDirectoryPathForTelevision()
+        {
+            var service = new RippingService();
+            var discInfo = getTVDiscInfo();
+            var tempDirPath = String.Join(@"\", service.GetPathSchemeByType(discInfo));
+            Assert.IsTrue(tempDirPath.Contains(@"Person of Interest\Season 02"));
+        }
+
+        [TestMethod]
+        public void TestGetOutputPathForTelevision()
+        {
+            var service = new Rippr.RippingService();
+            var discInfo = getTVDiscInfo();
+            var tempDirPath = String.Join(@"\", service.GetPathSchemeByType(discInfo));
+            var outputDir = service.getOutputPath(discInfo, tempDirPath);
+            Console.WriteLine(outputDir);
+            Assert.IsTrue(outputDir.Contains(@"Person of Interest\Season 02"));
+        }
+
+        private DiscInfo getTVDiscInfo()
+        {
+            var mediaInfo = new MediaInformation();
+            mediaInfo.Runtime = "43 min";
+            mediaInfo.Title = "Person of Interest";
+            mediaInfo.Type = "series";
+            mediaInfo.Year = "2011";
+            mediaInfo.SeasonNumber = 2;
+            mediaInfo.EpisodeStart = 5;
+            mediaInfo.EpisodeEnd = 8;
+            var discInfo = new DiscInfo();
+            discInfo.DiscType = "DVD";
+            discInfo.DriveLetter = "E:";
+            discInfo.MediaInfo = mediaInfo;
+            return discInfo;
+        }
     }
 }

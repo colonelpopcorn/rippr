@@ -90,9 +90,9 @@ public class RippingService
         {
             var pathInfo = getPathInfo(disc);
             var sourcePath = pathInfo.InputPath;
-            var mediaFolderName = String.Join(@"\", getPathSchemeByType(disc));
-            var outputPath = $"{getOutputPath(disc)}\\{mediaFolderName}";
-            var localPath = string.Format(@"{0}\{1}", sourcePath, mediaFolderName);
+            var mediaFolderName = String.Join(@"\", GetPathSchemeByType(disc));
+            var outputPath = getOutputPath(disc, mediaFolderName);
+            var localPath = $@"{sourcePath}\{mediaFolderName}";
 
             if (Directory.Exists(localPath))
             {
@@ -140,7 +140,6 @@ public class RippingService
                 // Do the renaming here
                 File.Move(fileInfo.FullName, Path.Combine(fileInfo.DirectoryName, newEpisodeName));
             }
-
             index++;
         }
     }
@@ -154,7 +153,7 @@ public class RippingService
             var pathInfo = getPathInfo(disc);
             if (disc.DiscType != "CD")
             {
-                var tempDirByType = String.Join(@"\", getPathSchemeByType(disc));
+                var tempDirByType = String.Join(@"\", GetPathSchemeByType(disc));
                 var tempDirForRip = CreateTempDirForRip(tempDirByType, disc);
                 var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime, disc.MediaInfo.Type);
                 command = string.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, runTimeInSeconds, index,
@@ -178,7 +177,7 @@ public class RippingService
         }
     }
 
-    private string[] getPathSchemeByType(DiscInfo disc)
+    public string[] GetPathSchemeByType(DiscInfo disc)
     {
         return disc.MediaInfo.Type == MOVIE_TYPE ? new[] {RemoveInvalidFilePathCharacters($"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})", "-")} : getTelevisionPathFromUser(disc);
     }
@@ -236,6 +235,17 @@ public class RippingService
             mediaType == TELEVISION_TYPE ? discType == "Blu-Ray" ? ripprOptions.OutputOpts.HDTVOutputPath :
             ripprOptions.OutputOpts.SDTVOutputPath :
             mediaType == MUSIC_TYPE ? ripprOptions.OutputOpts.MusicOutputPath : ripprOptions.OutputOpts.ISOOutputPath;
+    }
+
+    public string getOutputPath(DiscInfo disc, string mediaFolderName)
+    {
+        var mediaType = disc.MediaInfo.Type;
+        var discType = disc.DiscType;
+        return mediaType == MOVIE_TYPE ? discType == "Blu-Ray" ? $@"{ripprOptions.OutputOpts.HDMovieOutputPath}\{mediaFolderName}":
+            $@"{ripprOptions.OutputOpts.SDMovieOutputPath}\{mediaFolderName}" :
+            mediaType == TELEVISION_TYPE ? discType == "Blu-Ray" ? $@"{ripprOptions.OutputOpts.HDTVOutputPath}\{mediaFolderName}" :
+            $@"{ripprOptions.OutputOpts.SDTVOutputPath}\{mediaFolderName}" :
+            mediaType == MUSIC_TYPE ? $@"{ripprOptions.OutputOpts.MusicOutputPath}\{mediaFolderName}" : $@"{ripprOptions.OutputOpts.ISOOutputPath}\{mediaFolderName}";
     }
 
     public RipprInputOpts getPathInfo(DiscInfo disc)

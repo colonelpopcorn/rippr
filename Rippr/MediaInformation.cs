@@ -2,13 +2,13 @@
 {
     public class MediaInformation
     {
-        public string Type { get; internal set; }
-        public string Title { get; internal set; }
-        public string Year { get; internal set; }
-        public int SeasonNumber { get; internal set; }
-        public int EpisodeStart { get; internal set; }
-        public int EpisodeEnd { get; internal set; }
-        public string Runtime { get; internal set; }
+        public string Type { get; set; }
+        public string Title { get; set; }
+        public string Year { get; set; }
+        public int SeasonNumber { get; set; }
+        public int EpisodeStart { get; set; }
+        public int EpisodeEnd { get; set; }
+        public string Runtime { get; set; }
 
         public bool IsEmpty()
         {

@@ -4,8 +4,8 @@ namespace Rippr
 {
     public class DiscInfo
     {
-        public String DiscType { get; internal set; }
-        public MediaInformation MediaInfo { get; internal set; }
-        public string DriveLetter { get; internal set; }
+        public String DiscType { get; set; }
+        public MediaInformation MediaInfo { get; set; }
+        public string DriveLetter { get; set; }
     }
 }
