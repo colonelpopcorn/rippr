@@ -2,15 +2,15 @@
   "profiles": {
     "Rippr": {
       "commandName": "Project",
-      "commandLineArgs": "--omdb-api-key=4ec7e2a"
+      "commandLineArgs": "--omdb-api-key=4ec7e2a E:"
     },
     "RipprDebug": {
       "commandName": "Project",
-      "commandLineArgs": "--debug --omdb-api-key=4ec7e2a"
+      "commandLineArgs": "--debug --omdb-api-key=4ec7e2a E:"
     },
     "RipprHelp": {
       "commandName": "Project",
-      "commandLineArgs": "--help --omdb-api-key 4ec7e2a"
+      "commandLineArgs": "--help --omdb-api-key 4ec7e2a E:"
     }
   }
 }

@@ -6,7 +6,8 @@
         public string Title { get; internal set; }
         public string Year { get; internal set; }
         public int SeasonNumber { get; internal set; }
-        public int DiscNumber { get; internal set; }
+        public int EpisodeStart { get; internal set; }
+        public int EpisodeEnd { get; internal set; }
         public string Runtime { get; internal set; }
 
         public bool IsEmpty()

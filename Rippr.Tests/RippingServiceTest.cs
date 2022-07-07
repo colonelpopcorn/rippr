@@ -22,7 +22,7 @@ namespace RipprTests
         public void TestGetInfo()
         {
             var service = new Rippr.RippingService();
-            var infoList = service.GetDiscInfoList().GetAwaiter().GetResult();
+            var infoList = service.GetDiscInfoList("E:").GetAwaiter().GetResult();
             Assert.IsTrue(infoList.Count > 0);
         }
 

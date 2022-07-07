@@ -37,9 +37,9 @@ public class RippingService
     [DllImport("winmm.dll")]
     private static extern int mciSendString(string command, string buffer, int bufferSize, IntPtr hwndCallback);
 
-    public async Task<List<DiscInfo>> GetDiscInfoList()
+    public async Task<List<DiscInfo>> GetDiscInfoList(string driveLetter)
     {
-        var mos = new ManagementObjectSearcher("SELECT * FROM Win32_CDROMDrive");
+        var mos = new ManagementObjectSearcher($"SELECT * FROM Win32_CDROMDrive where Drive = '{driveLetter}'");
 
         var discInfoList = new List<DiscInfo>();
 
@@ -90,7 +90,7 @@ public class RippingService
         {
             var pathInfo = getPathInfo(disc);
             var sourcePath = pathInfo.InputPath;
-            var mediaFolderName = RemoveInvalidFilePathCharacters(getPathSchemeByType(disc), " -");
+            var mediaFolderName = String.Join(@"\", getPathSchemeByType(disc));
             var outputPath = $"{getOutputPath(disc)}\\{mediaFolderName}";
             var localPath = string.Format(@"{0}\{1}", sourcePath, mediaFolderName);
 
@@ -99,9 +99,14 @@ public class RippingService
                 if (ripprOptions.IsDebugMode)
                 {
                     Console.WriteLine("Would copy {0} to {1}, recursively", sourcePath, outputPath);
+                    RenameFilesInDirectory(localPath, disc);
                 }
                 else
                 {
+                    if (disc.MediaInfo.Type == TELEVISION_TYPE)
+                    {
+                        RenameFilesInDirectory(localPath, disc);
+                    }
                     CopyFilesRecursively(localPath, outputPath);
                     Directory.Delete(localPath, true);
                 }
@@ -110,6 +115,33 @@ public class RippingService
             {
                 Console.WriteLine("Error: Could not find output of ripping process. Something must have gone wrong!");
             }
+        }
+    }
+
+    private void RenameFilesInDirectory(string localPath, DiscInfo disc)
+    {
+        DirectoryInfo d = new DirectoryInfo(localPath);
+        FileInfo[] fileInformationArray = d.GetFiles("*");
+        var index = 0;
+        var seasonNumberStr = disc.MediaInfo.SeasonNumber.ToString().Length == 1 ? $"0{disc.MediaInfo.SeasonNumber}" : disc.MediaInfo.SeasonNumber.ToString();
+        foreach(FileInfo fileInfo in fileInformationArray)
+        {
+            var episodeNumber = disc.MediaInfo.EpisodeStart + index;
+            var episodeNumberStr = episodeNumber.ToString().Length == 1 ? $"0{episodeNumber}" : episodeNumber.ToString();
+            var newEpisodeName =
+                $"{disc.MediaInfo.Title} - S{seasonNumberStr}E{episodeNumberStr}{fileInfo.Extension}";
+            if (ripprOptions.IsDebugMode)
+            {
+                Console.WriteLine($"Would rename file from {fileInfo.Name} to -> {newEpisodeName}");
+                
+            }
+            else
+            {
+                // Do the renaming here
+                File.Move(fileInfo.FullName, Path.Combine(fileInfo.DirectoryName, newEpisodeName));
+            }
+
+            index++;
         }
     }
 
@@ -122,7 +154,7 @@ public class RippingService
             var pathInfo = getPathInfo(disc);
             if (disc.DiscType != "CD")
             {
-                var tempDirByType = getPathSchemeByType(disc);
+                var tempDirByType = String.Join(@"\", getPathSchemeByType(disc));
                 var tempDirForRip = CreateTempDirForRip(tempDirByType, disc);
                 var runTimeInSeconds = GetRuntimeInSeconds(disc.MediaInfo.Runtime, disc.MediaInfo.Type);
                 command = string.Format(pathInfo.RipperExeOpts, pathInfo.RipperExePath, runTimeInSeconds, index,
@@ -146,20 +178,45 @@ public class RippingService
         }
     }
 
-    private String getPathSchemeByType(DiscInfo disc)
+    private string[] getPathSchemeByType(DiscInfo disc)
     {
-        return disc.MediaInfo.Type == MOVIE_TYPE ? $"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})" : getTelevisionPathFromUser(disc);
+        return disc.MediaInfo.Type == MOVIE_TYPE ? new[] {RemoveInvalidFilePathCharacters($"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})", "-")} : getTelevisionPathFromUser(disc);
     }
 
-    private string getTelevisionPathFromUser(DiscInfo disc)
+    private string[] getTelevisionPathFromUser(DiscInfo disc)
     {
-        Console.WriteLine("TV series disc detected, enter season #:");
-        var seriesNumber = Console.ReadLine();
-        var finalSeriesNumber = seriesNumber.Length > 1 ? seriesNumber : $"0{seriesNumber}";
-        Console.WriteLine("Enter disc #:");
-        var discNumber = Console.ReadLine();
-        var finalDiscNumber = discNumber.Length > 1 ? discNumber : $"0{discNumber}";
-        return $"Season {finalSeriesNumber}\\Disc {finalDiscNumber}";
+        if (disc.MediaInfo.SeasonNumber == 0)
+        {
+            Console.WriteLine("TV series disc detected, enter season #:");
+            var seasonNumberStr = Console.ReadLine();
+            int seasonNumber;
+            if (!Int32.TryParse(seasonNumberStr, out seasonNumber))
+            {
+                throw new Exception("Failed to get season number!");
+            }
+            Console.WriteLine("Enter the first episode number on the disc:");
+            var startEpisodeStr = Console.ReadLine();
+            int startEpisode;
+            if (!Int32.TryParse(startEpisodeStr, out startEpisode))
+            {
+                throw new Exception("Failed to get episode start number!");
+            }
+            Console.WriteLine("Enter the last episode number on the disc:");
+            var lastEpisodeStr = Console.ReadLine();
+            int lastEpisode;
+            if (!Int32.TryParse(lastEpisodeStr, out lastEpisode))
+            {
+                throw new Exception("Failed to get episode end number!");
+            }
+
+            disc.MediaInfo.SeasonNumber = seasonNumber;
+            disc.MediaInfo.EpisodeStart = startEpisode;
+            disc.MediaInfo.EpisodeEnd = lastEpisode;
+        }
+
+        var finalSeasonNumberStr = disc.MediaInfo.SeasonNumber.ToString(); 
+        var finalSeasonNumber = finalSeasonNumberStr.Length > 1 ? finalSeasonNumberStr : $"0{finalSeasonNumberStr}";
+        return new[] {disc.MediaInfo.Title, $"Season {finalSeasonNumber}" };
     }
 
     // https://stackoverflow.com/questions/3825433/c-sharp-remove-invalid-characters-from-filename
@@ -226,7 +283,7 @@ public class RippingService
     public string CreateTempDirForRip(string dirName, DiscInfo disc)
     {
         var baseTempDir = getPathInfo(disc).InputPath;
-        var dirToCreate = $@"{baseTempDir}\{RemoveInvalidFilePathCharacters(dirName, "-")}";
+        var dirToCreate = $@"{baseTempDir}\{dirName}";
         if (!Directory.Exists(dirToCreate))
         {
             if (ripprOptions.IsDebugMode)

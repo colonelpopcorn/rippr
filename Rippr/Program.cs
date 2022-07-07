@@ -122,12 +122,16 @@ internal class Program
         try
         {
             var extra = p.Parse(args);
+            if (extra.Count <= 0)
+            {
+                throw new Exception("Unable to determine drive, please pass drive letter as an argument.");
+            }
             if (ripprOptions.ShouldShowHelp)
                 ShowHelp(p);
             else
                 do
                 {
-                    DoRip(ripprOptions).Wait();
+                    DoRip(ripprOptions, extra[0]).Wait();
                 } while (ripprOptions.IsBatchMode);
         }
         catch (OptionException e)
@@ -143,12 +147,12 @@ internal class Program
         throw new NotImplementedException();
     }
 
-    private static async Task DoRip(RipprOptions ripprOptions)
+    private static async Task DoRip(RipprOptions ripprOptions, string driveLetter)
     {
-        Console.WriteLine("Identifying disc(s)...");
+        Console.WriteLine($"Identifying disc in drive {driveLetter}...");
         var service = new RippingService(ripprOptions);
 
-        var discInfo = await service.GetDiscInfoList();
+        var discInfo = await service.GetDiscInfoList(driveLetter.Replace(@"\", ""));
 
         Console.WriteLine("Identification done, starting rip...");
 
