@@ -179,8 +179,7 @@ public class RippingService
 
     public string[] GetPathSchemeByType(DiscInfo disc)
     {
-        return disc.MediaInfo.Type == MOVIE_TYPE ? new[] {RemoveInvalidFilePathCharacters($"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})", "-")} : getTelevisionPathFromUser(disc);
-    }
+        return disc.MediaInfo.Type == MOVIE_TYPE ? new[] {RemoveInvalidFilePathCharacters($"{disc.MediaInfo.Title} ({disc.MediaInfo.Year})", "-")} : disc.MediaInfo.Type == TELEVISION_TYPE ? getTelevisionPathFromUser(disc) : new[] {RemoveInvalidFilePathCharacters($"{disc.MediaInfo.Title}", "-")}; }
 
     private string[] getTelevisionPathFromUser(DiscInfo disc)
     {

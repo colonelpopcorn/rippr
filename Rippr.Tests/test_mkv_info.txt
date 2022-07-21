@@ -1,0 +1,78 @@
+MakeMKV v1.17.0 win(x64-release) started
+Using LibreDrive mode (v06.3 id=7FA2657C7667)
+Using direct disc access mode
+Title #1 was added (32 cell(s), 2:54:17)
+Title #2 declared length is 0:00:00 while its real length is 0:00:00 - assuming fake title
+Title #3 was added (8 cell(s), 0:43:40)
+Title #4 was added (8 cell(s), 0:42:51)
+Title #5 was added (8 cell(s), 0:43:53)
+Title #6 was added (8 cell(s), 0:43:53)
+Title #7 was added (2 cell(s), 0:00:10)
+Operation successfully completed
+Total 6 titles
+Title  0
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Audio Dolby Digital
+3 Subtitles Dvd Subtitles
+4 Subtitles Dvd Subtitles
+5 Subtitles Dvd Subtitles
+6 Subtitles Dvd Subtitles
+7 Subtitles Dvd Subtitles
+8 Subtitles Dvd Subtitles
+9 Subtitles Dvd Subtitles
+
+Title  1
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Audio Dolby Digital
+3 Subtitles Dvd Subtitles
+4 Subtitles Dvd Subtitles
+5 Subtitles Dvd Subtitles
+6 Subtitles Dvd Subtitles
+7 Subtitles Dvd Subtitles
+8 Subtitles Dvd Subtitles
+9 Subtitles Dvd Subtitles
+
+Title  2
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Audio Dolby Digital
+3 Subtitles Dvd Subtitles
+4 Subtitles Dvd Subtitles
+5 Subtitles Dvd Subtitles
+6 Subtitles Dvd Subtitles
+7 Subtitles Dvd Subtitles
+8 Subtitles Dvd Subtitles
+9 Subtitles Dvd Subtitles
+
+Title  3
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Audio Dolby Digital
+3 Subtitles Dvd Subtitles
+4 Subtitles Dvd Subtitles
+5 Subtitles Dvd Subtitles
+6 Subtitles Dvd Subtitles
+7 Subtitles Dvd Subtitles
+8 Subtitles Dvd Subtitles
+9 Subtitles Dvd Subtitles
+
+Title  4
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Audio Dolby Digital
+3 Subtitles Dvd Subtitles
+4 Subtitles Dvd Subtitles
+5 Subtitles Dvd Subtitles
+6 Subtitles Dvd Subtitles
+7 Subtitles Dvd Subtitles
+8 Subtitles Dvd Subtitles
+9 Subtitles Dvd Subtitles
+
+Title  5
+0 Video Mpeg2
+1 Audio Dolby Digital
+2 Subtitles Dvd Subtitles
+3 Subtitles Closed Captions
+
